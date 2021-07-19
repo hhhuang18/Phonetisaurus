@@ -39,8 +39,8 @@ using namespace fst;
 typedef unordered_map<int, vector<PathData> > RMAP;
 
 void PrintPathData (const vector<PathData>& results, string FLAGS_word,
-		    const SymbolTable* osyms, bool print_scores = true,
-		    bool nlog_probs = true) {
+		    const SymbolTable* osyms,const SymbolTable* isyms, bool print_scores = true,
+		    bool nlog_probs = true, bool print_pairs = false) {
   for (int i = 0; i < results.size (); i++) {
     cout << FLAGS_word << "\t";
     if (print_scores == true) {
@@ -50,10 +50,26 @@ void PrintPathData (const vector<PathData>& results, string FLAGS_word,
 	cout << std::setprecision (3) << exp (-results [i].PathWeight) << "\t";
     }
     
-    for (int j = 0; j < results [i].Uniques.size (); j++) {
-      cout << osyms->Find (results [i].Uniques [j]);
-      if (j < results [i].Uniques.size () - 1)
-	cout << " ";
+    if (print_pairs == false) {
+      // print phones
+      for (int j = 0; j < results [i].Uniques.size (); j++) {
+        cout << osyms->Find (results [i].Uniques [j]);
+        if (j < results [i].Uniques.size () - 1)
+          cout << " ";
+      }
+    } else {
+      // print g2p pairs
+      if (results[i].ILabels.size()!=results[i].OLabels.size()){
+        cout << "ILabels and OLabels size mismatch." << endl;
+        exit (1);
+      } else {
+        for (int j = 0; j < results[i].ILabels.size(); j++) {
+        // filter out <eps>
+        if (results[i].OLabels[j] != 0)
+          cout << "{" << isyms->Find(results[i].ILabels[j]) << ":" 
+          << osyms->Find(results[i].OLabels[j]) << "} ";
+        }
+      }
     }
     cout << endl;
   }    
@@ -62,7 +78,7 @@ void PrintPathData (const vector<PathData>& results, string FLAGS_word,
 void EvaluateWordlist (PhonetisaurusScript& decoder, vector<string> corpus,
 		       int FLAGS_beam, int FLAGS_nbest, bool FLAGS_reverse,
 		       string FLAGS_skip, double FLAGS_thresh, string FLAGS_gsep,
-		       bool FLAGS_write_fsts, bool FLAGS_print_scores,
+		       bool FLAGS_write_fsts, bool FLAGS_print_scores, bool FLAGS_print_pairs,
 		       bool FLAGS_accumulate, double FLAGS_pmass,
 		       bool FLAGS_nlog_probs) {
   for (int i = 0; i < corpus.size (); i++) {
@@ -72,8 +88,10 @@ void EvaluateWordlist (PhonetisaurusScript& decoder, vector<string> corpus,
 						    FLAGS_accumulate, FLAGS_pmass);
     PrintPathData (results, corpus [i],
 		   decoder.osyms_,
+       decoder.isyms_,
 		   FLAGS_print_scores,
-		   FLAGS_nlog_probs);
+		   FLAGS_nlog_probs,
+       FLAGS_print_pairs);
   }
 }
 
@@ -90,6 +108,7 @@ DEFINE_double (pmass, 0.0, "Percent of probability mass (0.0 < p <= 1.0).");
 DEFINE_bool (write_fsts, false, "Write the output FSTs for debugging.");
 DEFINE_bool (reverse, false, "Reverse input word.");
 DEFINE_bool (print_scores, true, "Print scores in output.");
+DEFINE_bool (print_pairs, false, "Print G2P pairs in output.");
 DEFINE_bool (accumulate, false, "Accumulate weights for unique output prons.");
 DEFINE_bool (nlog_probs, true, "Default scores vals are negative logs. "
 	     "Otherwise exp (-val).");
@@ -145,7 +164,7 @@ int main (int argc, char* argv []) {
     EvaluateWordlist (
 	    decoder, corpus, FLAGS_beam, FLAGS_nbest, FLAGS_reverse,
 	    FLAGS_skip, FLAGS_thresh, FLAGS_gsep, FLAGS_write_fsts,
-	    FLAGS_print_scores, FLAGS_accumulate, FLAGS_pmass,
+	    FLAGS_print_scores, FLAGS_print_pairs, FLAGS_accumulate, FLAGS_pmass,
 	    FLAGS_nlog_probs
 	  );
   } else {
@@ -156,8 +175,10 @@ int main (int argc, char* argv []) {
 		       );
     PrintPathData (results, FLAGS_word,
 		   decoder.osyms_,
+       decoder.isyms_,
 		   FLAGS_print_scores,
-		   FLAGS_nlog_probs);
+		   FLAGS_nlog_probs,
+       FLAGS_print_pairs);
   }
   
   return 0;
