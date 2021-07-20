@@ -113,7 +113,7 @@ DEFINE_bool (accumulate, false, "Accumulate weights for unique output prons.");
 DEFINE_bool (nlog_probs, true, "Default scores vals are negative logs. "
 	     "Otherwise exp (-val).");
 int main (int argc, char* argv []) {
-  cerr << "GitRevision: " << GIT_REVISION << endl;
+  // cerr << "GitRevision: " << GIT_REVISION << endl;
   string usage = "phonetisaurus-g2pfst - joint N-gram decoder.\n\n Usage: ";
   set_new_handler (FailedNewHandler);
   PhonetisaurusSetFlags (usage.c_str(), &argc, &argv, false);
